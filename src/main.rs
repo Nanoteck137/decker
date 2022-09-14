@@ -12,23 +12,25 @@
 
 use serde_json::Value;
 
-use openssl::pkey::Private;
-use openssl::rsa::Rsa;
-
 use clap::Parser;
 
 use ssh2::Session;
 
 use std::fs::File;
-use std::io::Write;
+use std::io::Read;
 use std::net::TcpStream;
-use std::os::unix::fs::PermissionsExt;
 
 #[derive(Debug)]
 enum Error {
     RegisterRequestFailed(reqwest::Error),
     FailedToRetriveRegisterRequestText(reqwest::Error),
     FailedToParseErrorJson(serde_json::Error),
+    FailedToRegister(String),
+    FailedToRegisterWithoutMessage,
+    RegisterRequestUnknownStatus(u16),
+
+    FailedToOpenPublicKeyFile(std::io::Error),
+    FailedToReadPublicKeyFile(std::io::Error),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -98,17 +100,26 @@ struct Args {
 
 // fn get_ssh_key_path() -> Path {}
 
+fn get_public_key() -> Result<String> {
+    let mut file = File::open("decker_devkit_key.pub")
+        .map_err(|e| Error::FailedToOpenPublicKeyFile(e))?;
+
+    let mut result = String::new();
+    file.read_to_string(&mut result)
+        .map_err(|e| Error::FailedToReadPublicKeyFile(e))?;
+
+    Ok(result)
+}
+
 fn register(addr: &str) -> Result<()> {
     // TODO(patrik): Move port
     let url = format!("http://{}:32000/register", addr);
-    // let res = reqwest::blocking::post(url).unwrap().text().unwrap();
 
-    // let mut public_key = get_public_key(&key);
+    let mut public_key = get_public_key()?;
     // // TODO(patrik): We might not need to have the magic value because
     // // registering without it works
-    // public_key.pop();
-    // public_key.push_str(" 900b919520e4cf601998a71eec318fec\n");
-    let public_key = "";
+    public_key.pop();
+    public_key.push_str(" 900b919520e4cf601998a71eec318fec\n");
 
     let client = reqwest::blocking::Client::new();
     let res = client
@@ -123,15 +134,20 @@ fn register(addr: &str) -> Result<()> {
             .map_err(|e| Error::FailedToRetriveRegisterRequestText(e))?;
         let res: Value = serde_json::from_str(&res)
             .map_err(|e| Error::FailedToParseErrorJson(e))?;
-        let has_error = res.get("error").is_some();
-        println!("{} {}", res, has_error);
+        if let Some(error) = res.get("error") {
+            if let Some(error) = error.as_str() {
+                Err(Error::FailedToRegister(error.to_owned()))
+            } else {
+                Err(Error::FailedToRegisterWithoutMessage)
+            }
+        } else {
+            Err(Error::FailedToRegisterWithoutMessage)
+        }
     } else if res.status().is_success() {
-        println!("Device Registerd");
+        Ok(())
     } else {
-        panic!("Unknown error");
+        Err(Error::RegisterRequestUnknownStatus(res.status().as_u16()))
     }
-
-    Ok(())
 }
 
 fn main() {
