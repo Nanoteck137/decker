@@ -17,21 +17,9 @@ use openssl::rsa::Rsa;
 use std::fs::File;
 use std::io::Write;
 
-// def get_public_key_comment():
-//     return ' devkit-client:{}@{}'.format(
-//         getpass.getuser(),
-//         socket.gethostname(),
-//     )
-//
-//
-// def get_public_key(key):
-//     public_key = (
-//         'ssh-rsa ' + key.get_base64() + get_public_key_comment() + '\n')
-//     return public_key
-
 fn get_public_key_comment() -> String {
-    let user = "nanoteck137";
-    let hostname = "testing";
+    let user = whoami::username();
+    let hostname = whoami::hostname();
     format!("devkit-client:{}@{}", user, hostname)
 }
 
@@ -46,10 +34,15 @@ fn get_public_key(key: &Rsa<Private>) -> String {
 fn setup() -> Option<()> {
     let key = openssl::rsa::Rsa::generate(2048).ok()?;
 
-    println!("{}", get_public_key(&key));
-
-    let mut file = File::create("decker_devkit_key").ok()?;
+    let private_key_path = "decker_devkit_key";
+    println!("Writing the private key to '{}'", private_key_path);
+    let mut file = File::create(private_key_path).ok()?;
     file.write(&key.private_key_to_pem().ok()?).ok()?;
+
+    let public_key_path = "decker_devkit_key.pub";
+    println!("Writing the public key to '{}'", public_key_path);
+    let mut file = File::create("decker_devkit_key.pub").ok()?;
+    file.write(get_public_key(&key).as_bytes()).ok()?;
 
     Some(())
 }
