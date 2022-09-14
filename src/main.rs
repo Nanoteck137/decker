@@ -52,33 +52,8 @@ fn get_devkit_key() -> Option<Rsa<Private>> {
 }
 
 fn main() {
-    setup().expect("Failed to setup device");
-
-    // TODO(patrik): Generate RSA Key for SSH
-
-    // let key = openssl::rsa::Rsa::generate(2048).unwrap();
-    // let pub_key = key.public_key_to_der().unwrap();
-    // let pub_key = base64::encode(pub_key);
-    // println!("Key: {}", pub_key);
-    //
-    // println!(
-    //     "Key: {}",
-    //     std::str::from_utf8(&key.public_key_to_pem().unwrap()).unwrap()
-    // );
-    //
-    // let private_key = &key.private_key_to_pem().unwrap();
-    // let pem_key = std::str::from_utf8(private_key).unwrap();
-    // println!("Key: {}", pem_key);
-    //
-    // let priv_key = openssl::rsa::Rsa::private_key_from_pem("Hello World".as_bytes()).unwrap();
-    //
-    // let private_key = &priv_key.private_key_to_pem().unwrap();
-    // let pem_key = std::str::from_utf8(private_key).unwrap();
-    // println!(
-    //     "Key 2: {}",
-    //     std::str::from_utf8(&priv_key.public_key_to_pem().unwrap()).unwrap()
-    // );
-    // println!("Key 2: {}", pem_key);
+    setup()
+        .expect("Failed to setup device");
 
     let addr = if let Ok(addr) = std::env::var("DEVKIT_ADDR") {
         addr
