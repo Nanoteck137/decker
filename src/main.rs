@@ -11,7 +11,7 @@
 //     - Data: SSH_KEY + " " + MAGIC
 
 // TODO(patrik):
-//  Depolyment = game
+//  Deployment = game
 //
 //  - Setup the device
 //    - Copy over a helper program
