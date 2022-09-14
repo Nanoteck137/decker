@@ -10,6 +10,20 @@
 //   - /register
 //     - Data: SSH_KEY + " " + MAGIC
 
+// TODO(patrik):
+//  Depolyment = game
+//
+//  - Setup the device
+//    - Copy over a helper program
+//  - Helper Program
+//    - Create new depolyment
+//    - Delete depolyment
+//  - Setup the device for the deployment
+//    - Create the directory structure
+//    - Copy over the files
+//  - Create a Steam shortcut
+//
+
 use serde_json::Value;
 
 use clap::Parser;
@@ -54,9 +68,13 @@ fn register(addr: &str) -> Result<()> {
     let url = format!("http://{}:32000/register", addr);
 
     let mut public_key = get_public_key()?;
-    // // TODO(patrik): We might not need to have the magic value because
-    // // registering without it works
+    // TODO(patrik): We might not need to have the magic value because
+    // registering without it works
+
+    // Remove the newline
     public_key.pop();
+
+    // Push the magic phrase
     public_key.push_str(" 900b919520e4cf601998a71eec318fec\n");
 
     let client = reqwest::blocking::Client::new();
@@ -126,7 +144,6 @@ fn main() {
 
     println!("Device Address: {}", addr);
 
-    println!("Check: {}", check_if_registered(&addr));
     if !check_if_registered(&addr) {
         register(&addr).expect("Failed to register device");
     }
