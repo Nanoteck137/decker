@@ -14,11 +14,9 @@ use serde_json::Value;
 
 use clap::Parser;
 
-use ssh2::Session;
-
 use std::fs::File;
 use std::io::Read;
-use std::net::TcpStream;
+use std::process::Command;
 
 #[derive(Debug)]
 enum Error {
@@ -161,29 +159,18 @@ fn main() {
 
     register(&addr).expect("Failed to register device");
 
-    // let key = setup(&addr).expect("Failed to setup device");
+    let username = "deck";
+    let host = format!("{}@{}", username, addr);
+    let output = Command::new("ssh")
+        .arg("-i")
+        .arg("decker_devkit_key")
+        .arg(host)
+        .arg("date")
+        .output()
+        .expect("Failed to execute ssh");
+    println!("Output: {:?}", std::str::from_utf8(&output.stdout));
+    println!("Error: {:?}", std::str::from_utf8(&output.stderr));
 
-    // let tcp = TcpStream::connect("10.28.28.48:22").unwrap();
-    // let mut session = Session::new().unwrap();
-    // session.set_tcp_stream(tcp);
-    // session.handshake().unwrap();
-    //
-    // // Try to authenticate with the first identity in the agent.
-    // // session.userauth_agent("deck").unwrap();
-    // let priv_key = &key.private_key_to_pem().unwrap();
-    // let priv_key = std::str::from_utf8(priv_key).unwrap();
-    //
-    // let pub_key = &key.public_key_to_pem().unwrap();
-    // let pub_key = std::str::from_utf8(pub_key).unwrap();
-    //
-    // // let pub_key = get_public_key(&key);
-    //
-    // session
-    //     .userauth_pubkey_memory("deck", None, priv_key, None)
-    //     .unwrap();
-    //
-    // // Make sure we succeeded
-    // assert!(session.authenticated());
     //
     // let url = format!("http://{}/properties.json", addr);
     // let res = reqwest::blocking::get(url).unwrap().text().unwrap();
