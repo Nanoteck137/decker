@@ -109,6 +109,14 @@ fn check_if_registered(addr: &str) -> bool {
     output.status.success()
 }
 
+fn simple_print_output(output: &std::process::Output) {
+    if output.status.success() {
+        println!("{}", std::str::from_utf8(&output.stdout).unwrap());
+    } else {
+        println!("Error: {}", std::str::from_utf8(&output.stderr).unwrap());
+    }
+}
+
 fn main() {
     let addr = if let Ok(addr) = std::env::var("DEVKIT_ADDR") {
         addr
@@ -124,6 +132,8 @@ fn main() {
     }
 
     let output = execute_simple_ssh(&addr, "date");
-    println!("Output: {:?}", output);
-    execute_simple_ssh(&addr, "ls");
+    simple_print_output(&output);
+
+    let output = execute_simple_ssh(&addr, "ls");
+    simple_print_output(&output);
 }
