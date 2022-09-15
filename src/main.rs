@@ -31,6 +31,7 @@ use clap::Parser;
 use std::fs::File;
 use std::io::Read;
 use std::process::Command;
+use std::path::Path;
 
 #[derive(Debug)]
 enum Error {
@@ -109,16 +110,41 @@ fn register(addr: &str) -> Result<()> {
 fn execute_simple_ssh(addr: &str, cmd: &str) -> std::process::Output {
     let username = "deck";
     let host = format!("{}@{}", username, addr);
-    let output = Command::new("ssh")
+
+    Command::new("ssh")
         .arg("-oBatchMode=yes")
         .arg("-i")
         .arg("decker_devkit_key")
         .arg(host)
         .arg(cmd)
         .output()
-        .expect("Failed to execute ssh");
+        .expect("Failed to execute ssh")
+}
 
-    output
+fn execute_simple_scp<S, D>(
+    addr: &str,
+    source: S,
+    dest: D,
+) -> std::process::Output
+where
+    S: AsRef<Path>,
+    D: AsRef<Path>,
+{
+    let username = "deck";
+    let host = format!("{}@{}", username, addr);
+
+    let source = source.as_ref();
+    let dest = dest.as_ref();
+    let dest = format!("{}:{}", host, dest.to_str().unwrap());
+
+    Command::new("scp")
+        .arg("-oBatchMode=yes")
+        .arg("-i")
+        .arg("decker_devkit_key")
+        .arg(source)
+        .arg(dest)
+        .output()
+        .expect("Failed to execute scp")
 }
 
 fn check_if_registered(addr: &str) -> bool {
@@ -148,9 +174,13 @@ fn main() {
         register(&addr).expect("Failed to register device");
     }
 
-    let output = execute_simple_ssh(&addr, "date");
-    simple_print_output(&output);
+    execute_simple_ssh(&addr, "mkdir -p ~/decker");
 
-    let output = execute_simple_ssh(&addr, "ls");
+    let mut exe_path = std::env::current_exe().unwrap();
+    exe_path.set_file_name("decker_util");
+    execute_simple_scp(&addr, exe_path, "~/decker/decker_util");
+
+    let output =
+        execute_simple_ssh(&addr, "~/decker/decker_util Helllo World");
     simple_print_output(&output);
 }
