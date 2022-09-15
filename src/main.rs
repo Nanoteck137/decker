@@ -180,6 +180,7 @@ fn main() {
     exe_path.set_file_name("decker_util");
     execute_simple_scp(&addr, exe_path, "~/decker/decker_util");
 
-    let output = execute_simple_ssh(&addr, "~/decker/decker_util prepare-upload test");
+    let output =
+        execute_simple_ssh(&addr, "~/decker/decker_util prepare-upload test");
     simple_print_output(&output);
 }
