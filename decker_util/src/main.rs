@@ -16,7 +16,13 @@ struct Args {
 #[derive(Subcommand, Debug)]
 enum Command {
     Status,
-    PrepareUpload { game_id: String },
+    PrepareUpload {
+        #[clap(value_parser)]
+        game_id: String,
+
+        #[clap(value_parser)]
+        remove_old: bool,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -75,8 +81,35 @@ fn status() {
     print!("{}", s);
 }
 
-fn prepare_upload(game_id: String) {
-    println!("Prepare Upload: {}", game_id);
+fn prepare_upload(game_id: String, remove_old: bool) {
+    let mut path = std::env::current_dir().unwrap();
+    path.push("decker-games");
+    path.push(game_id);
+
+    if !path.exists() {
+        std::fs::create_dir_all(&path).unwrap();
+        let path = path.to_str().unwrap();
+        let data = serde_json::json!({
+            "exists": false,
+            "path": path,
+        });
+
+        print!("{}", data.to_string());
+    } else {
+        if remove_old {
+            std::fs::remove_dir_all(&path).unwrap();
+            std::fs::create_dir_all(&path).unwrap();
+        }
+
+        let path = path.to_str().unwrap();
+        let data = serde_json::json!({
+            "exists": true,
+            "removed_old_content": remove_old,
+            "path": path,
+        });
+
+        print!("{}", serde_json::to_string_pretty(&data).unwrap());
+    }
 }
 
 fn main() {
@@ -84,6 +117,9 @@ fn main() {
 
     match args.command {
         Command::Status => status(),
-        Command::PrepareUpload { game_id } => prepare_upload(game_id),
+        Command::PrepareUpload {
+            game_id,
+            remove_old,
+        } => prepare_upload(game_id, remove_old),
     }
 }

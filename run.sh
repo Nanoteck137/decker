@@ -6,7 +6,7 @@ echo $platform
 pushd decker_util
 
 if [[ $platform == 'Darwin' ]]; then
-    RUSTFLAGS="-C linker=x86_64-linux-musl-gcc" cargo build  --release
+    RUSTFLAGS="-C linker=x86_64-linux-musl-gcc" cargo build --release
 else
     cargo build  --release
 fi
