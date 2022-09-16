@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Write, Read};
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -23,6 +23,7 @@ enum Command {
         #[clap(value_parser)]
         remove_old: bool,
     },
+    Test,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -83,7 +84,7 @@ fn status() {
 
 fn prepare_upload(game_id: String, remove_old: bool) {
     let mut path = std::env::current_dir().unwrap();
-    path.push("decker-games");
+    path.push("devkit-game");
     path.push(game_id);
 
     if !path.exists() {
@@ -112,6 +113,18 @@ fn prepare_upload(game_id: String, remove_old: bool) {
     }
 }
 
+fn test() {
+    println!("Hello World");
+
+    let path = Path::new(".steam/steam.pipe");
+    let mut file = File::create(path).unwrap();
+    let cmd =
+        format!("create-shortcut?response={}&gameid={}", "/tmp/wooh", "wooh");
+    let token = read_file(".steam/steam.token");
+    let pipe_cmd = format!("steam://devkit-1/{}/{}\n", token, cmd);
+    file.write(pipe_cmd.as_bytes()).unwrap();
+}
+
 fn main() {
     let args = Args::parse();
 
@@ -121,5 +134,6 @@ fn main() {
             game_id,
             remove_old,
         } => prepare_upload(game_id, remove_old),
+        Command::Test => test(),
     }
 }
