@@ -10,3 +10,4 @@ authors = ["Patrik M. Rosenström <patrik.millvik@gmail.com>"]
 serde_json = "1.0.85"
 serde = { version = "1.0.144", features = ["derive"] }
 clap = { version = "3.2.21", features = ["derive"] }
+vdf = { path = "../vdf" }
