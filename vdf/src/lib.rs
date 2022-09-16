@@ -21,6 +21,13 @@ impl Object {
     }
 
     pub fn set_value(&mut self, key: String, value: Value) {
+        for v in self.values.iter_mut() {
+            if v.0 == key {
+                v.1 = value;
+                return;
+            }
+        }
+
         self.values.push((key, value));
     }
 
