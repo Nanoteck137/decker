@@ -49,6 +49,27 @@ where
     result
 }
 
+fn read_file_binary<P>(path: P) -> Vec<u8>
+where
+    P: AsRef<Path>,
+{
+    let mut file = File::open(path).unwrap();
+
+    let mut result = Vec::new();
+    file.read_to_end(&mut result).unwrap();
+
+    result
+}
+
+fn write_file_binary<P>(path: P, data: &Vec<u8>)
+where
+    P: AsRef<Path>,
+{
+    let mut file = File::create(path).unwrap();
+
+    file.write(data).unwrap();
+}
+
 fn status() {
     let info = read_file("/etc/os-release");
     let info = info.trim_end();
@@ -116,13 +137,32 @@ fn prepare_upload(game_id: String, remove_old: bool) {
 fn test() {
     println!("Hello World");
 
-    let path = Path::new(".steam/steam.pipe");
-    let mut file = File::create(path).unwrap();
-    let cmd =
-        format!("create-shortcut?response={}&gameid={}", "/tmp/wooh", "wooh");
-    let token = read_file(".steam/steam.token");
-    let pipe_cmd = format!("steam://devkit-1/{}/{}\n", token, cmd);
-    file.write(pipe_cmd.as_bytes()).unwrap();
+    // let path = Path::new(".steam/steam.pipe");
+    // let mut file = File::create(path).unwrap();
+    // let cmd =
+    //     format!("create-shortcut?response={}&gameid={}", "/tmp/wooh", "wooh");
+    // let token = read_file(".steam/steam.token");
+    // let pipe_cmd = format!("steam://devkit-1/{}/{}\n", token, cmd);
+    // file.write(pipe_cmd.as_bytes()).unwrap();
+
+    let path = Path::new(
+        "/home/deck/.steam/steam/userdata/112778642/config/shortcuts.vdf",
+    );
+    let data = read_file_binary(&path);
+    let mut obj = vdf::parse(&data).unwrap();
+    println!("Obj: {:#?}", obj);
+    if let vdf::Value::Object(obj) = obj.value_mut("Shortcuts").unwrap() {
+        if let vdf::Value::Object(obj) = obj.value_mut("0").unwrap() {
+            obj.set_value(
+                "AppName".to_string(),
+                vdf::Value::String("Testing for fun".to_string()),
+            );
+            println!("Obj: {:#?}", obj);
+        }
+    }
+
+    let new_data = vdf::write(&obj).unwrap();
+    write_file_binary(path, &new_data);
 }
 
 fn main() {
