@@ -182,22 +182,6 @@ where
 }
 
 fn main() {
-    let shortcut_file = read_file_binary("shortcuts.vdf");
-    let mut obj = vdf::parse(&shortcut_file).unwrap();
-
-    let shortcuts = obj.value_mut("Shortcuts").unwrap();
-    if let vdf::Value::Object(obj) = shortcuts {
-        let mut new_obj = vdf::Object::new();
-        new_obj.set_value("appid".to_string(), vdf::Value::Integer(0));
-        obj.set_value("1".to_string(), vdf::Value::Object(new_obj));
-    }
-
-    println!("Obj: {:#x?}", obj);
-
-    let bytes = vdf::write(&obj).unwrap();
-    write_file_binary("test.vdf", &bytes);
-    return;
-
     let addr = if let Ok(addr) = std::env::var("DEVKIT_ADDR") {
         addr
     } else {
