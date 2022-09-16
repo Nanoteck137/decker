@@ -29,7 +29,7 @@ use serde_json::Value;
 use clap::Parser;
 
 use std::fs::File;
-use std::io::Read;
+use std::io::{Write, Read};
 use std::process::Command;
 use std::path::Path;
 
@@ -161,7 +161,35 @@ fn simple_print_output(output: &std::process::Output) {
     }
 }
 
+fn read_file_binary<P>(filepath: P) -> Vec<u8>
+where
+    P: AsRef<Path>,
+{
+    let mut file = File::open(filepath).unwrap();
+
+    let mut result = Vec::new();
+    file.read_to_end(&mut result).unwrap();
+
+    result
+}
+
+fn write_file_binary<P>(filepath: P, data: &[u8])
+where
+    P: AsRef<Path>,
+{
+    let mut file = File::create(filepath).unwrap();
+    file.write(data).unwrap();
+}
+
 fn main() {
+    let shortcut_file = read_file_binary("shortcuts.vdf");
+    let obj = vdf::parse(&shortcut_file).unwrap();
+    println!("Obj: {:#?}", obj);
+
+    let bytes = vdf::write(&obj).unwrap();
+    write_file_binary("test.vdf", &bytes);
+    return;
+
     let addr = if let Ok(addr) = std::env::var("DEVKIT_ADDR") {
         addr
     } else {
@@ -183,4 +211,14 @@ fn main() {
     let output =
         execute_simple_ssh(&addr, "~/decker/decker_util prepare-upload test");
     simple_print_output(&output);
+
+    let output = execute_simple_ssh(&addr, "~/decker/decker_util test");
+    simple_print_output(&output);
+
+    let temp_file = mktemp::Temp::new_file().unwrap();
+    println!("Temp File: {:?}", temp_file.as_path());
+    let mut file = File::create(&temp_file).unwrap();
+    file.write(b"[\"test.sh\"]\n").unwrap();
+
+    execute_simple_scp(&addr, temp_file, "/tmp/testing");
 }
