@@ -18,12 +18,32 @@ pub struct Object {
 }
 
 impl Object {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self { values: Vec::new() }
     }
 
-    fn set_value(&mut self, key: String, value: Value) {
+    pub fn set_value(&mut self, key: String, value: Value) {
         self.values.push((key, value));
+    }
+
+    pub fn value(&mut self, key: &str) -> Option<&Value> {
+        for value in self.values.iter() {
+            if value.0 == key {
+                return Some(&value.1);
+            }
+        }
+
+        None
+    }
+
+    pub fn value_mut(&mut self, key: &str) -> Option<&mut Value> {
+        for value in self.values.iter_mut() {
+            if value.0 == key {
+                return Some(&mut value.1);
+            }
+        }
+
+        None
     }
 }
 
