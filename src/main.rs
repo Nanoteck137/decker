@@ -204,7 +204,8 @@ fn main() {
         execute_simple_ssh(&addr, "~/decker/decker_util prepare-upload test");
     simple_print_output(&output);
 
-    let output = execute_simple_ssh(&addr, "~/decker/decker_util test");
+    let output =
+        execute_simple_ssh(&addr, "~/decker/decker_util create-shortcut test");
     simple_print_output(&output);
 
     let temp_file = mktemp::Temp::new_file().unwrap();
