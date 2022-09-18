@@ -90,7 +90,6 @@ fn get_public_key() -> Result<String> {
 fn create_ssh_keys() {
     let path = get_private_key_path();
 
-    // ssh-keygen -f decker_devkit_key -t rsa -b 2048 -N ""
     Command::new("ssh-keygen")
         .arg("-f")
         .arg(path)
