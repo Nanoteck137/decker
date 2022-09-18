@@ -204,14 +204,22 @@ fn main() {
         execute_simple_ssh(&addr, "~/decker/decker_util prepare-upload test");
     simple_print_output(&output);
 
-    let output =
-        execute_simple_ssh(&addr, "~/decker/decker_util create-shortcut test");
+    let game_id = "test";
+    let exec = "/home/deck/decker-games/test/test.sh";
+    let starting_dir = "/home/deck/decker-games/test/";
+
+    let cmd = format!(
+        "~/decker/decker_util create-shortcut {} {} {}",
+        game_id, exec, starting_dir
+    );
+
+    let output = execute_simple_ssh(&addr, &cmd);
     simple_print_output(&output);
 
-    let temp_file = mktemp::Temp::new_file().unwrap();
-    println!("Temp File: {:?}", temp_file.as_path());
-    let mut file = File::create(&temp_file).unwrap();
-    file.write(b"[\"test.sh\"]\n").unwrap();
-
-    execute_simple_scp(&addr, temp_file, "/tmp/testing");
+    // let temp_file = mktemp::Temp::new_file().unwrap();
+    // println!("Temp File: {:?}", temp_file.as_path());
+    // let mut file = File::create(&temp_file).unwrap();
+    // file.write(b"[\"test.sh\"]\n").unwrap();
+    //
+    // execute_simple_scp(&addr, temp_file, "/tmp/testing");
 }

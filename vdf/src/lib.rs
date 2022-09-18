@@ -65,6 +65,10 @@ impl Object {
     pub fn values(&mut self) -> &Vec<(String, Value)> {
         &self.values
     }
+
+    pub fn values_mut(&mut self) -> &mut Vec<(String, Value)> {
+        &mut self.values
+    }
 }
 
 pub fn parse_string(bytes: &[u8], offset: &mut usize) -> Result<String> {

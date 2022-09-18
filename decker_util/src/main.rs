@@ -26,6 +26,12 @@ enum Command {
     CreateShortcut {
         #[clap(value_parser)]
         game_id: String,
+
+        #[clap(value_parser)]
+        exec: String,
+
+        #[clap(value_parser)]
+        starting_dir: String,
     },
 }
 
@@ -137,24 +143,90 @@ fn prepare_upload(game_id: String, remove_old: bool) {
     }
 }
 
-fn gen_id(exe: String, app_name: &String) -> u64 {
+fn gen_id(exe: &String, app_name: &String) -> u32 {
     let crc = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC);
-    let key = exe + app_name;
+    let key = exe.clone() + app_name;
 
-    (crc.checksum(key.as_bytes()) as u64) | 0x80000000
+    crc.checksum(key.as_bytes()) | 0x80000000
 }
 
-fn create_shortcut(game_id: String) {
+fn create_shortcut_obj(
+    id: u32,
+    game_id: String,
+    app_name: String,
+    exec: String,
+    starting_dir: String,
+) -> vdf::Object {
+    let mut new_obj = vdf::Object::new();
+
+    new_obj.set_value("appid".to_string(), vdf::Value::Integer(id));
+
+    new_obj.set_value("AppName".to_string(), vdf::Value::String(app_name));
+
+    new_obj.set_value("Exe".to_string(), vdf::Value::String(exec));
+
+    new_obj
+        .set_value("StartDir".to_string(), vdf::Value::String(starting_dir));
+
+    new_obj.set_value("icon".to_string(), vdf::Value::String("".to_string()));
+
+    new_obj.set_value(
+        "ShortcutPath".to_string(),
+        vdf::Value::String("".to_string()),
+    );
+
+    new_obj.set_value(
+        "LaunchOptions".to_string(),
+        vdf::Value::String("".to_string()),
+    );
+
+    new_obj.set_value("IsHidden".to_string(), vdf::Value::Integer(0));
+
+    new_obj
+        .set_value("AllowDesktopConfig".to_string(), vdf::Value::Integer(1));
+
+    new_obj.set_value("AllowOverlay".to_string(), vdf::Value::Integer(1));
+
+    new_obj.set_value("OpenVR".to_string(), vdf::Value::Integer(0));
+
+    new_obj.set_value("Devkit".to_string(), vdf::Value::Integer(1));
+
+    new_obj.set_value(
+        "DevkitGameID".to_string(),
+        vdf::Value::String(game_id.clone()),
+    );
+
+    new_obj
+        .set_value("DevkitOverrideAppID".to_string(), vdf::Value::Integer(0));
+
+    new_obj.set_value(
+        "LastPlayTime".to_string(),
+        vdf::Value::Integer(1663261394),
+    );
+
+    new_obj.set_value(
+        "FlatpakAppID".to_string(),
+        vdf::Value::String("".to_string()),
+    );
+
+    let tags = vdf::Object::new();
+    new_obj.set_value("tags".to_string(), vdf::Value::Object(tags));
+
+    new_obj
+}
+
+fn update_shortcut(obj: &mut vdf::Object) {
+    // TODO(patrik): Update shortcut
+    println!("TODO: Update shortcut");
+}
+
+fn create_shortcut(game_id: String, exec: String, starting_dir: String) {
     println!("Creating shortcut: {}", game_id);
 
-    let id = gen_id(
-        "/home/deck/devkit-game/SteamDeckTesting/SteamDeckTesting.sh"
-            .to_string(),
-        &"Devkit Game: SteamDeckTesting".to_string(),
-    );
-    println!("ID: {}", id);
+    let app_name = format!("Decker: {}", game_id);
 
-    return;
+    let id = gen_id(&exec, &app_name);
+    println!("ID: {}", id);
 
     let path = Path::new("/home/deck/.steam/steam/userdata/");
     for dir in std::fs::read_dir(path).unwrap() {
@@ -178,90 +250,43 @@ fn create_shortcut(game_id: String) {
         }
 
         if let vdf::Value::Object(obj) = obj.value_mut("Shortcuts").unwrap() {
-            let mut max = 0;
-            for value in obj.values() {
-                let index = value.0.parse::<u32>().unwrap();
-                max = index.max(max);
+            let mut found = false;
+
+            for value in obj.values_mut().iter_mut() {
+                if let vdf::Value::Object(obj) = &mut value.1 {
+                    let appid = obj.value("appid").unwrap();
+                    if let vdf::Value::Integer(appid) = appid {
+                        if *appid == id {
+                            update_shortcut(obj);
+                            found = true;
+                            break;
+                        }
+                    }
+                }
             }
 
-            let new_index = max + 10;
-            println!("New index: {}", new_index);
+            if !found {
+                let mut max = 0;
+                for value in obj.values() {
+                    let index = value.0.parse::<u32>().unwrap();
+                    max = index.max(max);
+                }
 
-            let mut new_obj = vdf::Object::new();
+                let new_index = max + 1;
 
-            new_obj.set_value(
-                "appid".to_string(),
-                vdf::Value::Integer(2946048122),
-            );
+                let new_obj = create_shortcut_obj(
+                    id,
+                    game_id.clone(),
+                    app_name.clone(),
+                    exec.clone(),
+                    starting_dir.clone(),
+                );
 
-            new_obj.set_value(
-                "AppName".to_string(),
-                vdf::Value::String("Woooh".to_string()),
-            );
-
-            new_obj.set_value(
-                "Exe".to_string(),
-                vdf::Value::String("test".to_string()),
-            );
-
-            new_obj.set_value(
-                "StartDir".to_string(),
-                vdf::Value::String("lel".to_string()),
-            );
-
-            new_obj.set_value(
-                "icon".to_string(),
-                vdf::Value::String("".to_string()),
-            );
-
-            new_obj.set_value(
-                "ShortcutPath".to_string(),
-                vdf::Value::String("".to_string()),
-            );
-
-            new_obj.set_value(
-                "LaunchOptions".to_string(),
-                vdf::Value::String("".to_string()),
-            );
-
-            new_obj.set_value("IsHidden".to_string(), vdf::Value::Integer(0));
-
-            new_obj.set_value(
-                "AllowDesktopConfig".to_string(),
-                vdf::Value::Integer(1),
-            );
-
-            new_obj
-                .set_value("AllowOverlay".to_string(), vdf::Value::Integer(1));
-
-            new_obj.set_value("OpenVR".to_string(), vdf::Value::Integer(0));
-
-            new_obj.set_value("Devkit".to_string(), vdf::Value::Integer(1));
-
-            new_obj.set_value(
-                "DevkitGameID".to_string(),
-                vdf::Value::String("SteamDeckTesting".to_string()),
-            );
-
-            new_obj.set_value(
-                "DevkitOverrideAppID".to_string(),
-                vdf::Value::Integer(0),
-            );
-
-            new_obj.set_value(
-                "LastPlayTime".to_string(),
-                vdf::Value::Integer(1663261394),
-            );
-
-            new_obj.set_value(
-                "FlatpakAppID".to_string(),
-                vdf::Value::String("".to_string()),
-            );
-
-            let tags = vdf::Object::new();
-            new_obj.set_value("tags".to_string(), vdf::Value::Object(tags));
-
-            obj.set_value(new_index.to_string(), vdf::Value::Object(new_obj));
+                obj.set_value(
+                    new_index.to_string(),
+                    vdf::Value::Object(new_obj),
+                );
+            }
         }
 
         // println!("Obj: {:#?}", obj);
@@ -280,6 +305,10 @@ fn main() {
             game_id,
             remove_old,
         } => prepare_upload(game_id, remove_old),
-        Command::CreateShortcut { game_id } => create_shortcut(game_id),
+        Command::CreateShortcut {
+            game_id,
+            exec,
+            starting_dir,
+        } => create_shortcut(game_id, exec, starting_dir),
     }
 }
