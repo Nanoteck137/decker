@@ -31,7 +31,7 @@ use clap::Parser;
 use std::fs::File;
 use std::io::{Write, Read};
 use std::process::Command;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 enum Error {
@@ -53,9 +53,32 @@ struct Args {
     command: String,
 }
 
+fn get_data_dir() -> PathBuf {
+    let mut res = dirs::data_local_dir().unwrap();
+    res.push("decker");
+
+    res
+}
+
+fn get_private_key_path() -> PathBuf {
+    let mut res = get_data_dir();
+    res.push("decker_devkit_key");
+
+    res
+}
+
+fn get_public_key_path() -> PathBuf {
+    let mut res = get_private_key_path();
+    res.set_extension("pub");
+
+    res
+}
+
 fn get_public_key() -> Result<String> {
-    let mut file = File::open("decker_devkit_key.pub")
-        .map_err(|e| Error::FailedToOpenPublicKeyFile(e))?;
+    let path = get_public_key_path();
+
+    let mut file =
+        File::open(path).map_err(|e| Error::FailedToOpenPublicKeyFile(e))?;
 
     let mut result = String::new();
     file.read_to_string(&mut result)
@@ -64,7 +87,29 @@ fn get_public_key() -> Result<String> {
     Ok(result)
 }
 
+fn create_ssh_keys() {
+    let path = get_private_key_path();
+
+    // ssh-keygen -f decker_devkit_key -t rsa -b 2048 -N ""
+    Command::new("ssh-keygen")
+        .arg("-f")
+        .arg(path)
+        .arg("-t")
+        .arg("rsa")
+        .arg("-b")
+        .arg("2048")
+        .arg("-N")
+        .arg("")
+        .output()
+        .expect("Failed to execute ssh-keygen");
+}
+
 fn register(addr: &str) -> Result<()> {
+    let private_key = get_private_key_path();
+    if !private_key.exists() {
+        create_ssh_keys();
+    }
+
     // TODO(patrik): Move port
     let url = format!("http://{}:32000/register", addr);
 
@@ -111,10 +156,12 @@ fn execute_simple_ssh(addr: &str, cmd: &str) -> std::process::Output {
     let username = "deck";
     let host = format!("{}@{}", username, addr);
 
+    let key = get_private_key_path();
+
     Command::new("ssh")
         .arg("-oBatchMode=yes")
         .arg("-i")
-        .arg("decker_devkit_key")
+        .arg(key)
         .arg(host)
         .arg(cmd)
         .output()
@@ -137,10 +184,12 @@ where
     let dest = dest.as_ref();
     let dest = format!("{}:{}", host, dest.to_str().unwrap());
 
+    let key = get_private_key_path();
+
     Command::new("scp")
         .arg("-oBatchMode=yes")
         .arg("-i")
-        .arg("decker_devkit_key")
+        .arg(key)
         .arg(source)
         .arg(dest)
         .output()
@@ -163,9 +212,11 @@ where
     let dest = dest.as_ref();
     let dest = format!("{}:{}", host, dest.to_str().unwrap());
 
+    let key = get_private_key_path();
+
     Command::new("rsync")
         .arg("-e")
-        .arg("ssh -i decker_devkit_key")
+        .arg(format!("ssh -i \"{}\"", key.to_str().unwrap()))
         .arg("-r")
         .arg(source)
         .arg(dest)
@@ -197,6 +248,9 @@ fn main() {
         panic!("DEVKIT_ADDR not set");
     };
 
+    let path = get_data_dir();
+    std::fs::create_dir_all(path).unwrap();
+
     println!("Device Address: {}", addr);
 
     if !check_if_registered(&addr) {
@@ -217,10 +271,6 @@ fn main() {
         execute_simple_scp(&addr, temp_file, "~/decker/decker_util");
         execute_simple_ssh(&addr, "chmod +x ~/decker/decker_util");
     }
-
-    // let mut exe_path = std::env::current_exe().unwrap();
-    // exe_path.set_file_name("decker_util");
-    // execute_simple_scp(&addr, exe_path, "~/decker/decker_util");
 
     let cmd = format!("~/decker/decker_util prepare-upload {} true", game_id);
     let _output = execute_simple_ssh(&addr, &cmd);
