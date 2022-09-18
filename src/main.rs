@@ -47,6 +47,11 @@ enum Error {
 
     FailedToOpenPublicKeyFile(std::io::Error),
     FailedToReadPublicKeyFile(std::io::Error),
+
+    FailedToExecuteSSH(std::io::Error),
+    FailedToExecuteSSHKeygen(std::io::Error),
+    FailedToExecuteSCP(std::io::Error),
+    FailedToExecuteRSync(std::io::Error),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -109,7 +114,7 @@ fn get_public_key() -> Result<String> {
     Ok(result)
 }
 
-fn create_ssh_keys() {
+fn create_ssh_keys() -> Result<()> {
     let path = get_private_key_path();
 
     Command::new("ssh-keygen")
@@ -122,13 +127,15 @@ fn create_ssh_keys() {
         .arg("-N")
         .arg("")
         .output()
-        .expect("Failed to execute ssh-keygen");
+        .map_err(|e| Error::FailedToExecuteSSHKeygen(e))?;
+
+    Ok(())
 }
 
 fn register(addr: &str) -> Result<()> {
     let private_key = get_private_key_path();
     if !private_key.exists() {
-        create_ssh_keys();
+        create_ssh_keys()?;
     }
 
     // TODO(patrik): Move port
@@ -173,7 +180,7 @@ fn register(addr: &str) -> Result<()> {
     }
 }
 
-fn execute_simple_ssh(addr: &str, cmd: &str) -> std::process::Output {
+fn execute_simple_ssh(addr: &str, cmd: &str) -> Result<std::process::Output> {
     let username = "deck";
     let host = format!("{}@{}", username, addr);
 
@@ -186,14 +193,14 @@ fn execute_simple_ssh(addr: &str, cmd: &str) -> std::process::Output {
         .arg(host)
         .arg(cmd)
         .output()
-        .expect("Failed to execute ssh")
+        .map_err(|e| Error::FailedToExecuteSSH(e))
 }
 
 fn execute_simple_scp<S, D>(
     addr: &str,
     source: S,
     dest: D,
-) -> std::process::Output
+) -> Result<std::process::Output>
 where
     S: AsRef<Path>,
     D: AsRef<Path>,
@@ -214,14 +221,14 @@ where
         .arg(source)
         .arg(dest)
         .output()
-        .expect("Failed to execute scp")
+        .map_err(|e| Error::FailedToExecuteSCP(e))
 }
 
 fn execute_simple_rsync<S, D>(
     addr: &str,
     source: S,
     dest: D,
-) -> std::process::Output
+) -> Result<std::process::Output>
 where
     S: AsRef<Path>,
     D: AsRef<Path>,
@@ -242,13 +249,13 @@ where
         .arg(source)
         .arg(dest)
         .output()
-        .expect("Failed to execute rsync")
+        .map_err(|e| Error::FailedToExecuteRSync(e))
 }
 
-fn check_if_registered(addr: &str) -> bool {
-    let output = execute_simple_ssh(addr, "ls");
+fn check_if_registered(addr: &str) -> Result<bool> {
+    let output = execute_simple_ssh(addr, "ls")?;
 
-    output.status.success()
+    Ok(output.status.success())
 }
 
 fn simple_print_output(output: &std::process::Output) {
@@ -265,16 +272,16 @@ fn deploy(
     exec: &str,
     starting_dir: &str,
     game_file_dir: &str,
-) {
-    execute_simple_ssh(&addr, "mkdir -p ~/decker");
+) -> Result<()> {
+    execute_simple_ssh(&addr, "mkdir -p ~/decker")?;
 
     {
         let temp_file = mktemp::Temp::new_file().unwrap();
         let mut file = File::create(&temp_file).unwrap();
         file.write(DECKER_UTIL_PROGRAM).unwrap();
 
-        execute_simple_scp(&addr, temp_file, "~/decker/decker_util");
-        execute_simple_ssh(&addr, "chmod +x ~/decker/decker_util");
+        execute_simple_scp(&addr, temp_file, "~/decker/decker_util")?;
+        execute_simple_ssh(&addr, "chmod +x ~/decker/decker_util")?;
     }
 
     let cmd = format!("~/decker/decker_util prepare-upload {} true", game_id);
@@ -286,7 +293,7 @@ fn deploy(
         game_id, exec, starting_dir
     );
 
-    let output = execute_simple_ssh(&addr, &cmd);
+    let output = execute_simple_ssh(&addr, &cmd)?;
     simple_print_output(&output);
 
     let mut game_file_dir = game_file_dir.to_string();
@@ -298,11 +305,13 @@ fn deploy(
 
     let dest = format!("~/decker-games/{}", game_id);
 
-    let output = execute_simple_rsync(&addr, source, dest);
+    let output = execute_simple_rsync(&addr, source, dest)?;
     simple_print_output(&output);
+
+    Ok(())
 }
 
-fn run_shell(addr: &str, username: &str) {
+fn run_shell(addr: &str, username: &str) -> Result<()> {
     let host = format!("{}@{}", username, addr);
 
     let key = get_private_key_path();
@@ -313,12 +322,13 @@ fn run_shell(addr: &str, username: &str) {
         .arg(key)
         .arg(host)
         .status()
-        .expect("Failed to execute ssh");
+        .map_err(|e| Error::FailedToExecuteSSH(e))?;
+
+    Ok(())
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args = Args::parse();
-    println!("Arg: {:#?}", args);
 
     let addr = if let Ok(addr) = std::env::var("DEVKIT_ADDR") {
         addr
@@ -331,7 +341,7 @@ fn main() {
 
     println!("Device Address: {}", addr);
 
-    if !check_if_registered(&addr) {
+    if !check_if_registered(&addr)? {
         register(&addr).expect("Failed to register device");
     }
 
@@ -355,11 +365,11 @@ fn main() {
                 format!("/home/{}/decker-games/{}", username, game_id)
             };
 
-            deploy(&addr, &game_id, &exec, &starting_dir, &game_file_dir);
+            deploy(&addr, &game_id, &exec, &starting_dir, &game_file_dir)?;
         }
 
-        ArgCommand::Shell => run_shell(&addr, "deck"),
+        ArgCommand::Shell => run_shell(&addr, "deck")?,
     }
 
-    return;
+    Ok(())
 }
