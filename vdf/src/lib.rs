@@ -3,11 +3,20 @@ pub enum Error {}
 
 type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug)]
 pub enum Value {
     Object(Object),
     String(String),
     Integer(u32),
+}
+
+impl std::fmt::Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Object(o) => write!(f, "{:?}", o),
+            Value::String(s) => write!(f, "String({:?})", s),
+            Value::Integer(i) => write!(f, "Integer({})", i),
+        }
+    }
 }
 
 #[derive(Debug)]
