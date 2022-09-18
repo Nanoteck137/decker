@@ -31,7 +31,7 @@ use clap::Parser;
 use std::fs::File;
 use std::io::{Write, Read};
 use std::process::Command;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 #[derive(Debug)]
 enum Error {
@@ -185,26 +185,6 @@ fn simple_print_output(output: &std::process::Output) {
     } else {
         println!("Error: {}", std::str::from_utf8(&output.stderr).unwrap());
     }
-}
-
-fn read_file_binary<P>(filepath: P) -> Vec<u8>
-where
-    P: AsRef<Path>,
-{
-    let mut file = File::open(filepath).unwrap();
-
-    let mut result = Vec::new();
-    file.read_to_end(&mut result).unwrap();
-
-    result
-}
-
-fn write_file_binary<P>(filepath: P, data: &[u8])
-where
-    P: AsRef<Path>,
-{
-    let mut file = File::create(filepath).unwrap();
-    file.write(data).unwrap();
 }
 
 fn main() {
