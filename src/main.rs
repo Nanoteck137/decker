@@ -33,6 +33,9 @@ use std::io::{Write, Read};
 use std::process::Command;
 use std::path::{Path, PathBuf};
 
+const DECKER_UTIL_PROGRAM: &[u8] =
+    include_bytes!("../target/release/decker_util");
+
 #[derive(Debug)]
 enum Error {
     RegisterRequestFailed(reqwest::Error),
@@ -56,8 +59,20 @@ struct Args {
 
 #[derive(Subcommand, Debug)]
 enum ArgCommand {
-    Register,
-    Deploy,
+    Deploy {
+        #[clap(value_parser)]
+        game_id: String,
+
+        #[clap(value_parser)]
+        exec: String,
+
+        #[clap(short, long, value_parser)]
+        starting_dir: Option<String>,
+
+        #[clap(value_parser)]
+        game_file_dir: String,
+    },
+    Shell,
 }
 
 fn get_data_dir() -> PathBuf {
@@ -244,32 +259,13 @@ fn simple_print_output(output: &std::process::Output) {
     }
 }
 
-const DECKER_UTIL_PROGRAM: &[u8] =
-    include_bytes!("../target/release/decker_util");
-
-fn main() {
-    let args = Args::parse();
-    println!("Arg: {:#?}", args);
-
-    let addr = if let Ok(addr) = std::env::var("DEVKIT_ADDR") {
-        addr
-    } else {
-        panic!("DEVKIT_ADDR not set");
-    };
-
-    let path = get_data_dir();
-    std::fs::create_dir_all(path).unwrap();
-
-    println!("Device Address: {}", addr);
-
-    if !check_if_registered(&addr) {
-        register(&addr).expect("Failed to register device");
-    }
-
-    let game_id = "test";
-    let exec = "/home/deck/decker-games/test/linux.sh";
-    let starting_dir = "/home/deck/decker-games/test/";
-
+fn deploy(
+    addr: &str,
+    game_id: &str,
+    exec: &str,
+    starting_dir: &str,
+    game_file_dir: &str,
+) {
     execute_simple_ssh(&addr, "mkdir -p ~/decker");
 
     {
@@ -293,9 +289,77 @@ fn main() {
     let output = execute_simple_ssh(&addr, &cmd);
     simple_print_output(&output);
 
-    let source = Path::new("../Testing/export/");
+    let mut game_file_dir = game_file_dir.to_string();
+    if game_file_dir.chars().nth(game_file_dir.len() - 1).unwrap() != '/' {
+        game_file_dir.push('/');
+    }
+
+    let source = game_file_dir;
+
     let dest = format!("~/decker-games/{}", game_id);
 
     let output = execute_simple_rsync(&addr, source, dest);
     simple_print_output(&output);
+}
+
+fn run_shell(addr: &str, username: &str) {
+    let host = format!("{}@{}", username, addr);
+
+    let key = get_private_key_path();
+
+    Command::new("ssh")
+        .arg("-oBatchMode=yes")
+        .arg("-i")
+        .arg(key)
+        .arg(host)
+        .status()
+        .expect("Failed to execute ssh");
+}
+
+fn main() {
+    let args = Args::parse();
+    println!("Arg: {:#?}", args);
+
+    let addr = if let Ok(addr) = std::env::var("DEVKIT_ADDR") {
+        addr
+    } else {
+        panic!("DEVKIT_ADDR not set");
+    };
+
+    let path = get_data_dir();
+    std::fs::create_dir_all(path).unwrap();
+
+    println!("Device Address: {}", addr);
+
+    if !check_if_registered(&addr) {
+        register(&addr).expect("Failed to register device");
+    }
+
+    let username = "deck";
+
+    match args.command {
+        ArgCommand::Deploy {
+            game_id,
+            exec,
+            starting_dir,
+            game_file_dir,
+        } => {
+            let exec = format!(
+                "/home/{}/decker-games/{}/{}",
+                username, game_id, exec
+            );
+
+            let starting_dir = if let Some(starting_dir) = starting_dir {
+                starting_dir
+            } else {
+                format!("/home/{}/decker-games/{}", username, game_id)
+            };
+
+            deploy(&addr, &game_id, &exec, &starting_dir, &game_file_dir);
+        }
+
+        ArgCommand::Shell => run_shell(&addr, "deck"),
+    }
+
+    return;
 }

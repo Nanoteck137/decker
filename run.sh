@@ -20,7 +20,7 @@ echo $1
 
 case $1 in
     run)
-        cargo run --release
+        cargo run --release -- deploy
         ;;
     install)
         cargo install --path .
