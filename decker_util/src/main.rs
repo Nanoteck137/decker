@@ -215,7 +215,7 @@ fn create_shortcut_obj(
     new_obj
 }
 
-fn update_shortcut(obj: &mut vdf::Object) {
+fn update_shortcut(_obj: &mut vdf::Object) {
     // TODO(patrik): Update shortcut
     println!("TODO: Update shortcut");
 }
