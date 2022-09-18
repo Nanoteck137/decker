@@ -114,7 +114,7 @@ fn status() {
 
 fn prepare_upload(game_id: String, remove_old: bool) {
     let mut path = std::env::current_dir().unwrap();
-    path.push("devkit-game");
+    path.push("decker-games");
     path.push(game_id);
 
     if !path.exists() {
@@ -288,8 +288,6 @@ fn create_shortcut(game_id: String, exec: String, starting_dir: String) {
                 );
             }
         }
-
-        // println!("Obj: {:#?}", obj);
 
         let new_data = vdf::write(&obj).unwrap();
         write_file_binary(path, &new_data);

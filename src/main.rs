@@ -31,7 +31,7 @@ use clap::Parser;
 use std::fs::File;
 use std::io::{Write, Read};
 use std::process::Command;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 enum Error {
@@ -147,6 +147,32 @@ where
         .expect("Failed to execute scp")
 }
 
+fn execute_simple_rsync<S, D>(
+    addr: &str,
+    source: S,
+    dest: D,
+) -> std::process::Output
+where
+    S: AsRef<Path>,
+    D: AsRef<Path>,
+{
+    let username = "deck";
+    let host = format!("{}@{}", username, addr);
+
+    let source = source.as_ref();
+    let dest = dest.as_ref();
+    let dest = format!("{}:{}", host, dest.to_str().unwrap());
+
+    Command::new("rsync")
+        .arg("-e")
+        .arg("ssh -i decker_devkit_key")
+        .arg("-r")
+        .arg(source)
+        .arg(dest)
+        .output()
+        .expect("Failed to execute rsync")
+}
+
 fn check_if_registered(addr: &str) -> bool {
     let output = execute_simple_ssh(addr, "ls");
 
@@ -194,19 +220,19 @@ fn main() {
         register(&addr).expect("Failed to register device");
     }
 
+    let game_id = "test";
+    let exec = "/home/deck/decker-games/test/linux.sh";
+    let starting_dir = "/home/deck/decker-games/test/";
+
     execute_simple_ssh(&addr, "mkdir -p ~/decker");
 
     let mut exe_path = std::env::current_exe().unwrap();
     exe_path.set_file_name("decker_util");
     execute_simple_scp(&addr, exe_path, "~/decker/decker_util");
 
-    let output =
-        execute_simple_ssh(&addr, "~/decker/decker_util prepare-upload test");
-    simple_print_output(&output);
-
-    let game_id = "test";
-    let exec = "/home/deck/decker-games/test/test.sh";
-    let starting_dir = "/home/deck/decker-games/test/";
+    let cmd = format!("~/decker/decker_util prepare-upload {} true", game_id);
+    let _output = execute_simple_ssh(&addr, &cmd);
+    // simple_print_output(&output);
 
     let cmd = format!(
         "~/decker/decker_util create-shortcut {} {} {}",
@@ -216,10 +242,9 @@ fn main() {
     let output = execute_simple_ssh(&addr, &cmd);
     simple_print_output(&output);
 
-    // let temp_file = mktemp::Temp::new_file().unwrap();
-    // println!("Temp File: {:?}", temp_file.as_path());
-    // let mut file = File::create(&temp_file).unwrap();
-    // file.write(b"[\"test.sh\"]\n").unwrap();
-    //
-    // execute_simple_scp(&addr, temp_file, "/tmp/testing");
+    let source = Path::new("../Testing/export/");
+    let dest = format!("~/decker-games/{}", game_id);
+
+    let output = execute_simple_rsync(&addr, source, dest);
+    simple_print_output(&output);
 }
