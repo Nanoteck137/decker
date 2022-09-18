@@ -26,7 +26,7 @@
 
 use serde_json::Value;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 use std::fs::File;
 use std::io::{Write, Read};
@@ -50,7 +50,14 @@ type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Parser, Debug)]
 struct Args {
-    command: String,
+    #[clap(subcommand)]
+    command: ArgCommand,
+}
+
+#[derive(Subcommand, Debug)]
+enum ArgCommand {
+    Register,
+    Deploy,
 }
 
 fn get_data_dir() -> PathBuf {
@@ -241,6 +248,9 @@ const DECKER_UTIL_PROGRAM: &[u8] =
     include_bytes!("../target/release/decker_util");
 
 fn main() {
+    let args = Args::parse();
+    println!("Arg: {:#?}", args);
+
     let addr = if let Ok(addr) = std::env::var("DEVKIT_ADDR") {
         addr
     } else {
