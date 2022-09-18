@@ -187,6 +187,9 @@ fn simple_print_output(output: &std::process::Output) {
     }
 }
 
+const DECKER_UTIL_PROGRAM: &[u8] =
+    include_bytes!("../target/release/decker_util");
+
 fn main() {
     let addr = if let Ok(addr) = std::env::var("DEVKIT_ADDR") {
         addr
@@ -206,9 +209,18 @@ fn main() {
 
     execute_simple_ssh(&addr, "mkdir -p ~/decker");
 
-    let mut exe_path = std::env::current_exe().unwrap();
-    exe_path.set_file_name("decker_util");
-    execute_simple_scp(&addr, exe_path, "~/decker/decker_util");
+    {
+        let temp_file = mktemp::Temp::new_file().unwrap();
+        let mut file = File::create(&temp_file).unwrap();
+        file.write(DECKER_UTIL_PROGRAM).unwrap();
+
+        execute_simple_scp(&addr, temp_file, "~/decker/decker_util");
+        execute_simple_ssh(&addr, "chmod +x ~/decker/decker_util");
+    }
+
+    // let mut exe_path = std::env::current_exe().unwrap();
+    // exe_path.set_file_name("decker_util");
+    // execute_simple_scp(&addr, exe_path, "~/decker/decker_util");
 
     let cmd = format!("~/decker/decker_util prepare-upload {} true", game_id);
     let _output = execute_simple_ssh(&addr, &cmd);
