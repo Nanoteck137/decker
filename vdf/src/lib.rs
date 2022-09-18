@@ -12,7 +12,9 @@ pub enum Value {
 impl std::fmt::Debug for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Object(o) => write!(f, "{:?}", o),
+            Value::Object(o) => {
+                f.debug_struct("Object").field("values", &o.values).finish()
+            }
             Value::String(s) => write!(f, "String({:?})", s),
             Value::Integer(i) => write!(f, "Integer({})", i),
         }
