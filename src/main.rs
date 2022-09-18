@@ -11,17 +11,7 @@
 //     - Data: SSH_KEY + " " + MAGIC
 
 // TODO(patrik):
-//  Deployment = game
 //
-//  - Setup the device
-//    - Copy over a helper program
-//  - Helper Program
-//    - Create new depolyment
-//    - Delete depolyment
-//  - Setup the device for the deployment
-//    - Create the directory structure
-//    - Copy over the files
-//  - Create a Steam shortcut
 //
 
 use serde_json::Value;
@@ -180,8 +170,11 @@ fn register(addr: &str) -> Result<()> {
     }
 }
 
-fn execute_simple_ssh(addr: &str, cmd: &str) -> Result<std::process::Output> {
-    let username = "deck";
+fn execute_simple_ssh(
+    addr: &str,
+    username: &str,
+    cmd: &str,
+) -> Result<std::process::Output> {
     let host = format!("{}@{}", username, addr);
 
     let key = get_private_key_path();
@@ -198,6 +191,7 @@ fn execute_simple_ssh(addr: &str, cmd: &str) -> Result<std::process::Output> {
 
 fn execute_simple_scp<S, D>(
     addr: &str,
+    username: &str,
     source: S,
     dest: D,
 ) -> Result<std::process::Output>
@@ -205,7 +199,6 @@ where
     S: AsRef<Path>,
     D: AsRef<Path>,
 {
-    let username = "deck";
     let host = format!("{}@{}", username, addr);
 
     let source = source.as_ref();
@@ -226,6 +219,7 @@ where
 
 fn execute_simple_rsync<S, D>(
     addr: &str,
+    username: &str,
     source: S,
     dest: D,
 ) -> Result<std::process::Output>
@@ -233,7 +227,6 @@ where
     S: AsRef<Path>,
     D: AsRef<Path>,
 {
-    let username = "deck";
     let host = format!("{}@{}", username, addr);
 
     let source = source.as_ref();
@@ -252,8 +245,8 @@ where
         .map_err(|e| Error::FailedToExecuteRSync(e))
 }
 
-fn check_if_registered(addr: &str) -> Result<bool> {
-    let output = execute_simple_ssh(addr, "ls")?;
+fn check_if_registered(addr: &str, username: &str) -> Result<bool> {
+    let output = execute_simple_ssh(addr, username, "ls")?;
 
     Ok(output.status.success())
 }
@@ -268,24 +261,25 @@ fn simple_print_output(output: &std::process::Output) {
 
 fn deploy(
     addr: &str,
+    username: &str,
     game_id: &str,
     exec: &str,
     starting_dir: &str,
     game_file_dir: &str,
 ) -> Result<()> {
-    execute_simple_ssh(&addr, "mkdir -p ~/decker")?;
+    execute_simple_ssh(addr, username, "mkdir -p ~/decker")?;
 
     {
         let temp_file = mktemp::Temp::new_file().unwrap();
         let mut file = File::create(&temp_file).unwrap();
         file.write(DECKER_UTIL_PROGRAM).unwrap();
 
-        execute_simple_scp(&addr, temp_file, "~/decker/decker_util")?;
-        execute_simple_ssh(&addr, "chmod +x ~/decker/decker_util")?;
+        execute_simple_scp(addr, username, temp_file, "~/decker/decker_util")?;
+        execute_simple_ssh(addr, username, "chmod +x ~/decker/decker_util")?;
     }
 
     let cmd = format!("~/decker/decker_util prepare-upload {} true", game_id);
-    let _output = execute_simple_ssh(&addr, &cmd);
+    let _output = execute_simple_ssh(addr, username, &cmd);
     // simple_print_output(&output);
 
     let cmd = format!(
@@ -293,7 +287,7 @@ fn deploy(
         game_id, exec, starting_dir
     );
 
-    let output = execute_simple_ssh(&addr, &cmd)?;
+    let output = execute_simple_ssh(addr, username, &cmd)?;
     simple_print_output(&output);
 
     let mut game_file_dir = game_file_dir.to_string();
@@ -305,7 +299,7 @@ fn deploy(
 
     let dest = format!("~/decker-games/{}", game_id);
 
-    let output = execute_simple_rsync(&addr, source, dest)?;
+    let output = execute_simple_rsync(addr, username, source, dest)?;
     simple_print_output(&output);
 
     Ok(())
@@ -341,11 +335,11 @@ fn main() -> Result<()> {
 
     println!("Device Address: {}", addr);
 
-    if !check_if_registered(&addr)? {
+    let username = "deck";
+
+    if !check_if_registered(&addr, username)? {
         register(&addr).expect("Failed to register device");
     }
-
-    let username = "deck";
 
     match args.command {
         ArgCommand::Deploy {
@@ -365,7 +359,14 @@ fn main() -> Result<()> {
                 format!("/home/{}/decker-games/{}", username, game_id)
             };
 
-            deploy(&addr, &game_id, &exec, &starting_dir, &game_file_dir)?;
+            deploy(
+                &addr,
+                username,
+                &game_id,
+                &exec,
+                &starting_dir,
+                &game_file_dir,
+            )?;
         }
 
         ArgCommand::Shell => run_shell(&addr, "deck")?,
