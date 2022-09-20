@@ -11,7 +11,9 @@
 //     - Data: SSH_KEY + " " + MAGIC
 
 // TODO(patrik):
-//
+//   - Add verbose printing
+//   - Add documentation
+//   - Cleanup the code
 //
 
 use serde_json::Value;
@@ -50,6 +52,9 @@ type Result<T> = std::result::Result<T, Error>;
 struct Args {
     #[clap(subcommand)]
     command: ArgCommand,
+
+    #[clap(short, value_parser)]
+    devkit_addr: String,
 }
 
 #[derive(Subcommand, Debug)]
@@ -366,11 +371,7 @@ fn run(args: Args, addr: &str) -> Result<()> {
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let addr = if let Ok(addr) = std::env::var("DEVKIT_ADDR") {
-        addr
-    } else {
-        panic!("DEVKIT_ADDR not set");
-    };
+    let addr = args.devkit_addr.clone();
 
     let path = get_data_dir();
     std::fs::create_dir_all(path).unwrap();
