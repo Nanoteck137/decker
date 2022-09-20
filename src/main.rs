@@ -25,29 +25,54 @@ use std::io::{Write, Read};
 use std::process::Command;
 use std::path::{Path, PathBuf};
 
+/// The helper program we send to the devkit
 const DECKER_UTIL_PROGRAM: &[u8] =
     include_bytes!("../target/release/decker_util");
 
+/// Custom error enum
 #[derive(Debug)]
 enum Error {
+    /// Failed to send POST request to /register
     RegisterRequestFailed(reqwest::Error),
+
+    /// Failed to get the text result from the POST request
     FailedToRetriveRegisterRequestText(reqwest::Error),
+
+    /// Failed to parse the error json from the request
     FailedToParseErrorJson(serde_json::Error),
+
+    /// Failed to register the host
     FailedToRegister(String),
+
+    /// Failed to register but no message was supplied
     FailedToRegisterWithoutMessage,
+
+    /// POST request with unknown status
     RegisterRequestUnknownStatus(u16),
 
+    /// Failed to open the public key file
     FailedToOpenPublicKeyFile(std::io::Error),
+
+    /// Failed to read the public key file
     FailedToReadPublicKeyFile(std::io::Error),
 
+    /// Failed to execute 'ssh'
     FailedToExecuteSSH(std::io::Error),
+
+    /// Failed to execute 'ssh-keygen'
     FailedToExecuteSSHKeygen(std::io::Error),
+
+    /// Failed to execute 'scp'
     FailedToExecuteSCP(std::io::Error),
+
+    /// Failed to execute 'rsync'
     FailedToExecuteRSync(std::io::Error),
 }
 
+/// Custom result type with our custom error enum
 type Result<T> = std::result::Result<T, Error>;
 
+/// Command line arguments the program accepts
 #[derive(Parser, Debug)]
 struct Args {
     #[clap(subcommand)]
@@ -57,24 +82,35 @@ struct Args {
     devkit_addr: String,
 }
 
+/// Command line command
 #[derive(Subcommand, Debug)]
 enum ArgCommand {
+    /// Deploy game
     Deploy {
+        /// The game id the deployment should use
         #[clap(value_parser)]
         game_id: String,
 
+        /// The program the deployment should run when the user runs the game
         #[clap(value_parser)]
         exec: String,
 
+        /// The starting directory the deployment should start in when the
+        /// user run the game
         #[clap(short, long, value_parser)]
         starting_dir: Option<String>,
 
+        /// The directory on the host machine where the game files,
+        /// so we can copy them to the devkit
         #[clap(value_parser)]
         game_file_dir: String,
     },
+
+    /// Run shell
     Shell,
 }
 
+/// Get the path to the program data directory
 fn get_data_dir() -> PathBuf {
     let mut res = dirs::data_local_dir().unwrap();
     res.push("decker");
@@ -82,6 +118,7 @@ fn get_data_dir() -> PathBuf {
     res
 }
 
+/// Get the path to the private key file
 fn get_private_key_path() -> PathBuf {
     let mut res = get_data_dir();
     res.push("decker_devkit_key");
@@ -89,6 +126,7 @@ fn get_private_key_path() -> PathBuf {
     res
 }
 
+/// Get the path to the public key file
 fn get_public_key_path() -> PathBuf {
     let mut res = get_private_key_path();
     res.set_extension("pub");
@@ -96,6 +134,7 @@ fn get_public_key_path() -> PathBuf {
     res
 }
 
+/// Read the public key and return the content
 fn get_public_key() -> Result<String> {
     let path = get_public_key_path();
 
@@ -109,6 +148,7 @@ fn get_public_key() -> Result<String> {
     Ok(result)
 }
 
+/// Create the ssh keys needed for the devkit
 fn create_ssh_keys() -> Result<()> {
     let path = get_private_key_path();
 
@@ -127,6 +167,7 @@ fn create_ssh_keys() -> Result<()> {
     Ok(())
 }
 
+/// Register the host i.e send the ssh public key
 fn register(addr: &str) -> Result<()> {
     let private_key = get_private_key_path();
     if !private_key.exists() {
@@ -175,6 +216,7 @@ fn register(addr: &str) -> Result<()> {
     }
 }
 
+/// Execute command on the devkit
 fn execute_simple_ssh(
     addr: &str,
     username: &str,
@@ -194,6 +236,7 @@ fn execute_simple_ssh(
         .map_err(|e| Error::FailedToExecuteSSH(e))
 }
 
+/// Transfer files to/from the devkit
 fn execute_simple_scp<S, D>(
     addr: &str,
     username: &str,
@@ -222,6 +265,7 @@ where
         .map_err(|e| Error::FailedToExecuteSCP(e))
 }
 
+/// Sync files from/to the devkit
 fn execute_simple_rsync<S, D>(
     addr: &str,
     username: &str,
@@ -250,13 +294,15 @@ where
         .map_err(|e| Error::FailedToExecuteRSync(e))
 }
 
+/// Check if we already is registered
 fn check_if_registered(addr: &str, username: &str) -> Result<bool> {
     let output = execute_simple_ssh(addr, username, "ls")?;
 
     Ok(output.status.success())
 }
 
-fn simple_print_output(output: &std::process::Output) {
+/// Debug print the output
+fn _simple_print_output(output: &std::process::Output) {
     if output.status.success() {
         println!("{}", std::str::from_utf8(&output.stdout).unwrap());
     } else {
@@ -264,6 +310,7 @@ fn simple_print_output(output: &std::process::Output) {
     }
 }
 
+/// Deploy game to the devkit
 fn deploy(
     addr: &str,
     username: &str,
@@ -311,6 +358,7 @@ fn deploy(
     Ok(())
 }
 
+/// Run shell on the devkit
 fn run_shell(addr: &str, username: &str) -> Result<()> {
     let host = format!("{}@{}", username, addr);
 
@@ -327,6 +375,7 @@ fn run_shell(addr: &str, username: &str) -> Result<()> {
     Ok(())
 }
 
+/// Run the program
 fn run(args: Args, addr: &str) -> Result<()> {
     let username = "deck";
 
@@ -368,6 +417,7 @@ fn run(args: Args, addr: &str) -> Result<()> {
     Ok(())
 }
 
+/// Entry point
 fn main() -> Result<()> {
     let args = Args::parse();
 
