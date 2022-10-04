@@ -14,13 +14,15 @@ Based on the official SteamOS devkit client from Value but made to work on Windo
 
 * [Rust compiler](https://www.rust-lang.org/tools/install)
 
-#### MacOS
-```bash
-brew install FiloSottile/musl-cross/musl-cross
-```
-
+Add musl rust target
 ```bash
 rustup target add x86_64-unknown-linux-musl
+```
+
+#### MacOS
+Install musl cross compiler
+```bash
+brew install FiloSottile/musl-cross/musl-cross
 ```
 
 ### Build
@@ -47,7 +49,7 @@ decker -d <Steam Deck IP> deploy
 decker -d <Steam Deck IP> deploy --help # Print the full help text
 
 # Example of a deployment
-decker -d <Steam Deck IP> deploy
+decker -d <Steam Deck IP> deploy "Test Game" run_game.sh ./game_files
 ```
 
 Start a SSH session with the Steam Deck
