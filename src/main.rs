@@ -1,15 +1,3 @@
-// NOTE(patrik):
-// Offical Valve devkit client: https://gitlab.steamos.cloud/devkit/steamos-devkit
-// URL: http://machine-ip:32000
-// Magic: 900b919520e4cf601998a71eec318fec
-//   - From: https://gitlab.steamos.cloud/devkit/steamos-devkit/-/blob/main/client/devkit_client/__init__.py
-//   - NOTE: Maybe not needed
-// Endpoints
-//   - /properties.json
-//   - /login-name
-//   - /register
-//     - Data: SSH_KEY + " " + MAGIC
-
 // TODO(patrik):
 //   - Add verbose printing
 //   - Add documentation
@@ -184,6 +172,11 @@ fn register(addr: &str) -> Result<()> {
 
     // Remove the newline
     public_key.pop();
+
+    // NOTE(patrik): Magic from:
+    // https://gitlab.steamos.cloud/devkit/steamos-devkit/-/blob/main/client/devkit_client/__init__.py
+    // On Line: 872
+    // Used in function: register
 
     // Push the magic phrase
     public_key.push_str(" 900b919520e4cf601998a71eec318fec\n");
