@@ -9,7 +9,7 @@ endif
 
 DECKER_UTIL_EXE=target/x86_64-unknown-linux-musl/$(MODE)/decker_util
 
-all: decker
+all: build
 
 install: decker_util
 	cargo install --path .
