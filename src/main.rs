@@ -392,6 +392,7 @@ fn run(args: Args, addr: &str) -> Result<()> {
             starting_dir,
             game_file_dir,
         } => {
+            // TODO(patrik): Extract the path to decker-games
             let exec = format!(
                 "/home/{}/decker-games/{}/{}",
                 username, game_id, exec
@@ -400,6 +401,7 @@ fn run(args: Args, addr: &str) -> Result<()> {
             let starting_dir = if let Some(starting_dir) = starting_dir {
                 starting_dir
             } else {
+                // TODO(patrik): Extract the path to decker-games
                 format!("/home/{}/decker-games/{}", username, game_id)
             };
 
