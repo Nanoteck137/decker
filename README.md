@@ -26,23 +26,33 @@ rustup target add x86_64-unknown-linux-musl
 ### Build
 
 ```bash
-TODO
+make
 ```
 
 ### Build and Run
 ```bash
-TODO
+make run
+make run ARGS="--help" # run with arguments
 ```
 
 ### Install
 ```bash
-TODO
+make install
 ```
 
 ### Usage
+Deploy an app to the Steam Deck
 ```bash
-TODO
-decker -d <Steam Deck IP> register
+decker -d <Steam Deck IP> deploy
+decker -d <Steam Deck IP> deploy --help # Print the full help text
+
+# Example of a deployment
+decker -d <Steam Deck IP> deploy
+```
+
+Start a SSH session with the Steam Deck
+```bash
+decker -d <Steam Deck IP> shell
 ```
 
 
