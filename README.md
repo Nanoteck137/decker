@@ -29,12 +29,20 @@ brew install FiloSottile/musl-cross/musl-cross
 
 ```bash
 make
+
+# Debug build
+make debug=1
 ```
 
 ### Build and Run
 ```bash
 make run
-make run ARGS="--help" # run with arguments
+
+# Run with arguments
+make run ARGS="--help"
+
+# Debug build
+make run debug=1
 ```
 
 ### Install
@@ -46,7 +54,9 @@ make install
 Deploy an app to the Steam Deck
 ```bash
 decker -d <Steam Deck IP> deploy
-decker -d <Steam Deck IP> deploy --help # Print the full help text
+
+# Print the full help text
+decker -d <Steam Deck IP> deploy --help
 
 # Example of a deployment
 decker -d <Steam Deck IP> deploy "Test Game" run_game.sh ./game_files
