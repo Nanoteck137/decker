@@ -2,6 +2,7 @@
 //   - Add verbose printing
 //   - Add documentation
 //   - Cleanup the code
+//
 //   - Ubuntu:
 //      - Install: libssl-dev musl-dev
 //
@@ -63,6 +64,7 @@ type Result<T> = std::result::Result<T, Error>;
 
 /// Command line arguments the program accepts
 #[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
 struct Args {
     #[clap(subcommand)]
     command: ArgCommand,
