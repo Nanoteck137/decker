@@ -1,14 +1,18 @@
 # Decker
 
-Tools for for the Value Steam Deck written in Rust
+CLI Tools for for the Value Steam Deck written in Rust
 
 ## Description
 
 Decker is a collection of tools to interact and develope for the Steam Deck.
 
+Based on the official SteamOS devkit client from Value but made to work on Windows/Linux/MacOS.
+
 ## Getting Started
 
 ### Dependencies
+
+* [Rust compiler](https://www.rust-lang.org/tools/install)
 
 #### MacOS
 ```bash
@@ -31,9 +35,18 @@ TODO
 ```
 
 ### Install
+```bash
+TODO
+```
+
+### Usage
+```bash
+TODO
+decker -d <Steam Deck IP> register
+```
+
 
 ## Authors
-Contributors names and contact info
 
 Patrik Millvik Rosenström <patrik.millvik@gmail.com>
 
@@ -43,6 +56,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-Inspiration, code snippets, etc.
 * [Steam Deck Homepage](https://www.steamdeck.com)
 * [Value Official SteamOS devkit tools](https://gitlab.steamos.cloud/devkit/steamos-devkit)
