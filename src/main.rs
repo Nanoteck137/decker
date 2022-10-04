@@ -3,6 +3,11 @@
 //   - Add documentation
 //   - Cleanup the code
 //
+//   - Test Platforms and add build steps:
+//      - Linux
+//      - Windows
+//      - MacOS
+//
 //   - Ubuntu:
 //      - Install: libssl-dev musl-dev
 //
