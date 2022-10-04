@@ -14,6 +14,8 @@
 //   - Add verbose printing
 //   - Add documentation
 //   - Cleanup the code
+//   - Ubuntu:
+//      - Install: libssl-dev musl-dev
 //
 
 use serde_json::Value;
@@ -365,6 +367,7 @@ fn run_shell(addr: &str, username: &str) -> Result<()> {
 
     Command::new("ssh")
         .arg("-oBatchMode=yes")
+        .arg("-oStrictHostKeyChecking=no")
         .arg("-i")
         .arg(key)
         .arg(host)
