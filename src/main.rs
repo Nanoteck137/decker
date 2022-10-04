@@ -26,8 +26,7 @@ use std::process::Command;
 use std::path::{Path, PathBuf};
 
 /// The helper program we send to the devkit
-const DECKER_UTIL_PROGRAM: &[u8] =
-    include_bytes!("../target/release/decker_util");
+const DECKER_UTIL_PROGRAM: &[u8] = include_bytes!("../target/decker_util");
 
 /// Custom error enum
 #[derive(Debug)]
